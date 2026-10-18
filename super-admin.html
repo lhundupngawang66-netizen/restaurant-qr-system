@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin — Platform</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0eee8; margin: 0; padding: 40px 20px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { color: #173d2b; }
+  .card { background: white; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+  .login { max-width: 400px; margin: 100px auto; }
+  input, button { font: inherit; }
+  input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; }
+  button { padding: 10px 16px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700; }
+  .btn-primary { background: #173d2b; color: white; }
+  .btn-on { background: #d9a441; color: #201a0b; }
+  .btn-off { background: #e35d5d; color: white; }
+  .restaurant { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .info { font-size: 13px; color: #69736b; margin-top: 4px; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge.active { background: #d4edda; color: #155724; }
+  .badge.expired { background: #f8d7da; color: #721c24; }
+  .badge.override { background: #fff3cd; color: #856404; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card login" id="loginBox">
+    <h1>🔑 Super Admin</h1>
+    <input type="password" id="pwd" placeholder="Super-admin password">
+    <button class="btn-primary" id="loginBtn">Enter</button>
+    <p id="msg" style="color:#c33; margin-top:10px;"></p>
+  </div>
+
+  <div id="app" style="display:none">
+    <h1 style="margin-bottom:20px;">🏪 All Restaurants</h1>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+let PWD = '';
+const headers = () => ({ 'x-super-password': PWD, 'Content-Type': 'application/json' });
+
+document.getElementById('loginBtn').onclick = async () => {
+  PWD = document.getElementById('pwd').value;
+  const r = await fetch('/api/restaurants', { headers: headers() });
+  if (!r.ok) { document.getElementById('msg').textContent = 'Wrong password'; return; }
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  load();
+};
+
+async function load() {
+  const r = await fetch('/api/restaurants', { headers: headers() });
+  const list = await r.json();
+  document.getElementById('list').innerHTML = list.map(rest => {
+    const sub = rest.subscription || {};
+    const ov = rest.accessOverride || {};
+    const subBadge = sub.status === 'active' 
+      ? '<span class="badge active">ACTIVE</span>' 
+      : `<span class="badge expired">${sub.status || 'none'}</span>`;
+    const ovBadge = ov.enabled 
+      ? `<span class="badge override">OVERRIDE ON${ov.until ? ' until ' + ov.until : ''}</span>` 
+      : '';
+    return `
+    <div class="card restaurant">
+      <div>
+        <div><strong>${rest.name}</strong> <code style="color:#69736b;">${rest.id}</code></div>
+        <div class="info">Plan: ${sub.plan || '-'} ${subBadge} ${ovBadge}</div>
+        ${ov.reason ? `<div class="info">Note: ${ov.reason}</div>` : ''}
+      </div>
+      <div>
+        <button class="${ov.enabled ? 'btn-off' : 'btn-on'}"
+          onclick="toggleOverride('${rest.id}', ${!ov.enabled})">
+          ${ov.enabled ? '❌ Disable Free Access' : '🎁 Grant Free Access'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleOverride = async (id, enable) => {
+  const reason = enable ? (prompt('Reason? (friend / trial / family / etc.)') || 'manual') : null;
+  const until  = enable ? (prompt('Until when? YYYY-MM-DD, or leave empty for forever') || null) : null;
+  await fetch(`/api/restaurants/${id}/override`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ accessOverride: { enabled: enable, reason, until } })
+  });
+  load();
+};
+</script>
+</body>
+</html>

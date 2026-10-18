@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#173d2b">
+  <title>Everest Restaurant | Menu</title>
+  <style>
+    :root { --green:#173d2b; --green2:#24543d; --cream:#fffaf0; --gold:#d9a441; --ink:#20251f; --muted:#69736b; --line:#e9e5dc; --white:#fff; }
+    * { box-sizing:border-box; }
+    
+    /* BRIGHTER EVEREST MOUNTAIN BACKGROUND */
+    body { 
+      margin:0; 
+      background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=2000&auto=format&fit=crop') no-repeat center center fixed; 
+      background-size: cover;
+      background-color: #f7f5ef;
+      color:var(--ink); 
+      font-family:Arial,Helvetica,sans-serif; 
+    }
+    
+    /* Lighter overlay so the mountain is more visible */
+    .page-overlay { background: rgba(255, 255, 255, 0.75); min-height: 100vh; }
+
+    button, input, select, textarea { font:inherit; }
+    button { cursor:pointer; }
+    .topbar { background:var(--green); color:white; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .brand { font-weight:800; letter-spacing:.3px; }
+    .lang { border:1px solid #ffffff70; background:transparent; color:white; border-radius:999px; padding:8px 12px; }
+    .hero { background:linear-gradient(120deg,rgba(23,61,43,0.9),rgba(50,98,71,0.9)); color:white; padding:38px 18px 34px; text-align:center; }
+    .badge { display:inline-block; border:1px solid #ffffff70; border-radius:999px; padding:6px 11px; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+    h1 { margin:14px 0 8px; font-size:clamp(30px,6vw,48px); }
+    .hero p { margin:0 auto; max-width:620px; line-height:1.55; color:#e7eee7; }
+    main { max-width:1100px; margin:0 auto; padding:18px 16px 110px; }
+    .section-title { margin:25px 0 14px; display:flex; justify-content:space-between; align-items:end; gap:12px; }
+    .section-title h2 { margin:0; font-size:24px; }
+    .section-title p { margin:5px 0 0; color:var(--muted); font-size:14px; }
+    .categories { display:flex; gap:8px; overflow-x:auto; padding:2px 0 12px; }
+    .category { border:1px solid var(--line); background:white; border-radius:999px; padding:10px 15px; white-space:nowrap; color:var(--green); }
+    .category.active { background:var(--green); color:white; border-color:var(--green); }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .card { background:white; border:1px solid var(--line); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:transform 0.2s; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .food-photo { width:100%; height:150px; object-fit:cover; background:#e7e3d9; }
+    .card-content { padding:13px; display:flex; flex-direction:column; flex:1; }
+    .card h3 { margin:0 0 6px; font-size:17px; }
+    .description { margin:0 0 12px; color:var(--muted); font-size:13px; line-height:1.4; flex:1; }
+    .card-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .price { color:var(--green); font-weight:800; font-size:17px; }
+    .add { border:0; border-radius:10px; padding:9px 12px; background:var(--green); color:white; font-weight:700; }
+    .add:hover { background:var(--green2); }
+    .empty { grid-column:1/-1; padding:24px; text-align:center; color:var(--muted); background:white; border-radius:14px; }
+    .basket-bar { position:fixed; bottom:0; left:0; right:0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:white; border-top:1px solid var(--line); box-shadow:0 -6px 24px #0000000d; z-index:5; }
+    .basket-inner { max-width:1100px; margin:auto; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .basket-label { font-weight:800; }
+    .basket-sub { font-size:13px; color:var(--muted); margin-top:3px; }
+    .basket-open { border:0; background:var(--gold); color:#201a0b; border-radius:12px; padding:12px 16px; font-weight:800; }
+    .overlay { display:none; position:fixed; inset:0; background:#0008; z-index:10; padding:16px; align-items:flex-end; justify-content:center; }
+    .overlay.show { display:flex; }
+    .panel { background:white; width:min(100%,620px); max-height:85vh; overflow:auto; border-radius:20px; padding:20px; box-shadow:0 20px 70px #0003; }
+    .panel-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .panel h2 { margin:0; }
+    .close { border:0; background:#f1f0eb; border-radius:50%; width:38px; height:38px; font-size:22px; }
+    .basket-item { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--line); }
+    .item-name { font-weight:700; }
+    .item-price { color:var(--muted); font-size:13px; margin-top:4px; }
+    .qty { display:flex; align-items:center; gap:10px; }
+    .qty button { width:30px; height:30px; border:1px solid var(--line); background:white; border-radius:8px; }
+    .total-row { display:flex; justify-content:space-between; font-weight:800; font-size:20px; padding:18px 0; }
+    .form-row { display:grid; gap:6px; margin:12px 0; }
+    .form-row label { font-weight:700; font-size:14px; }
+    .form-row input, .form-row select, .form-row textarea { width:100%; border:1px solid #d8d8d0; border-radius:10px; padding:12px; background:white; font-family:inherit; }
+    .checkout { width:100%; border:0; border-radius:12px; background:var(--green); color:white; padding:14px; font-weight:800; margin-top:10px; }
+    
+    .pay-option { display:flex; align-items:center; gap:12px; padding:16px; border:2px solid #eee; border-radius:12px; margin-bottom:12px; cursor:pointer; transition:0.2s; }
+    .pay-option:hover { border-color:var(--gold); background:#f9f9f9; }
+    .pay-option:active { transform:scale(0.98); }
+    .pay-option .icon { font-size:24px; }
+    
+    .reader-animation { text-align:center; padding:30px 10px; }
+    .reader-icon { font-size:70px; display:inline-block; animation: bounce 1s infinite alternate; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+    .arrow-down { font-size:40px; color:var(--green); animation: pulse 1s infinite; margin-top:10px; }
+    @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+    
+    footer { text-align:center; padding:24px 16px 120px; color:var(--muted); font-size:12px; line-height:1.6; }
+    
+    /* DISH DETAILS MODAL */
+    #dishDetailOverlay { align-items: center; }
+    .dish-detail-img { width: 100%; height: 250px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; }
+    .dish-detail-price { font-size: 24px; font-weight: 800; color: var(--gold); margin-bottom: 16px; }
+    .dish-detail-desc { font-size: 16px; line-height: 1.6; color: var(--ink); margin-bottom: 24px; }
+    
+    @media (min-width:760px) { .grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .food-photo { height:175px; } .overlay { align-items:center; } }
+    @media (max-width:380px) { .grid { grid-template-columns:1fr; } .food-photo { height:190px; } .hero { padding-top:30px; } }
+  </style>
+</head>
+<body>
+<div class="page-overlay">
+  <div class="topbar">
+    <div class="brand">EVEREST RESTAURANT</div>
+    <button class="lang" id="langButton" type="button">English</button>
+  </div>
+
+  <header class="hero">
+    <span class="badge" id="badge">Cuisine indienne & népalaise</span>
+    <h1 id="heroTitle">Bienvenue chez Everest</h1>
+    <p id="heroText">Découvrez nos plats inspirés des cuisines indienne et népalaise.</p>
+  </header>
+
+  <main>
+    <div class="section-title">
+      <div>
+        <h2 id="menuTitle">Notre menu</h2>
+        <p id="menuSubtitle">Choisissez une catégorie, puis ajoutez vos plats.</p>
+      </div>
+    </div>
+    <div class="categories" id="categories"></div>
+    <div class="grid" id="menuGrid"><div class="loading">Chargement du menu…</div></div>
+
+    <!-- COMPACT SHARE, LOYALTY, AND DETAILS SECTION -->
+    <section style="margin:30px auto 0;">
+      <!-- Social Share -->
+      <div style="background:white; border:1px solid #e9e5dc; border-radius:12px; padding:12px; margin-bottom:12px; text-align:center;">
+        <h3 style="color:#173d2b; margin-top:0; font-size:15px; margin-bottom:4px;" id="shareTitle">📢 Share Everest Restaurant</h3>
+        <p style="color:#69736b; font-size:12px; margin-bottom:8px;" id="shareText">Help us spread the word!</p>
+        <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+          <a id="shareFacebook" href="#" target="_blank" style="background:#1877F2; color:white; padding:6px 12px; border-radius:6px; text-decoration:none; font-weight:700; font-size:12px;">Facebook</a>
+          <a id="shareTwitter" href="#" target="_blank" style="background:#000; color:white; padding:6px 12px; border-radius:6px; text-decoration:none; font-weight:700; font-size:12px;">X (Twitter)</a>
+          <a id="shareWhatsapp" href="#" target="_blank" style="background:#25D366; color:white; padding:6px 12px; border-radius:6px; text-decoration:none; font-weight:700; font-size:12px;">WhatsApp</a>
+        </div>
+      </div>
+
+      <!-- Loyalty Sign-up -->
+      <div style="background:white; border:1px solid #e9e5dc; border-radius:12px; padding:12px; margin-bottom:12px;">
+        <h3 style="color:#173d2b; margin-top:0; font-size:15px; margin-bottom:4px;" id="loyaltyTitle">🎁 Join our Loyalty Club</h3>
+        <p style="color:#69736b; font-size:12px; margin-bottom:8px;" id="loyaltyText">Sign up for exclusive offers!</p>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <input id="subName" type="text" placeholder="Your Name" style="flex:1; min-width:100px; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:12px;">
+          <input id="subEmail" type="email" placeholder="Your Email" style="flex:2; min-width:150px; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:12px;">
+          <button onclick="subscribeToLoyalty()" style="background:#d9a441; color:#201a0b; border:0; border-radius:6px; padding:8px 12px; font-weight:800; cursor:pointer; font-size:12px;" id="joinBtn">Join</button>
+        </div>
+        <p id="subMsg" style="font-size:11px; margin-top:4px;"></p>
+      </div>
+
+      <!-- Restaurant Details -->
+      <div style="background:white; border:1px solid #e9e5dc; border-radius:12px; padding:12px;">
+        <h3 style="color:#173d2b; margin-top:0; font-size:15px; margin-bottom:8px;" id="detailsTitle">📍 Restaurant Details</h3>
+        <p style="font-size:13px; color:#20251f; margin:4px 0;"><strong id="detailsAddressLabel">Address:</strong> 60 Avenue Jean Mermoz, 66000 Perpignan</p>
+        <p style="font-size:13px; color:#20251f; margin:4px 0;"><strong id="detailsPhoneLabel">Phone:</strong> +33 9 52 39 01 96</p>
+        <p style="font-size:13px; color:#20251f; margin:4px 0;"><strong id="detailsHoursLabel">Hours:</strong> <span id="detailsHoursValue">Tue–Sun 12:00 – 14:30, 19:00 – 22:30 (Closed Mondays)</span></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="footerNote" style="display:none;">Menu Everest Restaurant</span>
+    <div style="margin-top: 10px; font-size: 11px; opacity: 0.8;">
+      Website developed by: lhundupngawang66@gmail.com
+    </div>
+  </footer>
+</div>
+
+  <div class="basket-bar">
+    <div class="basket-inner">
+      <div>
+        <div class="basket-label" id="basketLabel">Votre panier</div>
+        <div class="basket-sub" id="basketSummary">0 article · 0,00 €</div>
+      </div>
+      <button class="basket-open" id="openBasket" type="button">Voir le panier</button>
+    </div>
+  </div>
+
+  <!-- Basket Overlay -->
+  <div class="overlay" id="basketOverlay" role="dialog" aria-modal="true">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="basketTitle">Votre panier</h2>
+        <button class="close" id="closeBasket" type="button" aria-label="Fermer">×</button>
+      </div>
+      <div id="basketItems"></div>
+      <div class="total-row"><span id="totalLabel">Total estimé</span><span id="basketTotal">0,00 €</span></div>
+      
+      <div class="form-row">
+        <label>Type de commande</label>
+        <div style="display:flex; gap:16px; margin-top:6px;">
+          <label style="font-weight:normal;"><input type="radio" name="orderType" value="dinein" checked> 🍽️ Sur place</label>
+          <label style="font-weight:normal;"><input type="radio" name="orderType" value="takeaway"> 🥡 À emporter</label>
+        </div>
+      </div>
+      <div class="form-row" id="tableRow">
+        <label for="tableInput">Numéro de table</label>
+        <input id="tableInput" type="number" placeholder="Ex: 5" min="1" value="">
+      </div>
+      
+      <div class="form-row" id="phoneRow" style="display:none;">
+        <label for="phoneInput" id="phoneLabel">Numéro de téléphone <span style="color:#d9a441; font-size:12px;" id="phoneNote">(Important pour à emporter)</span></label>
+        <input id="phoneInput" type="tel" placeholder="Ex: 06 12 34 56 78">
+      </div>
+
+      <div class="form-row">
+        <label for="customerName" id="nameLabel">Votre prénom (facultatif)</label>
+        <input id="customerName" type="text" placeholder="Prénom">
+      </div>
+
+      <div class="form-row">
+        <label for="specialRequests">Demandes spéciales / Message (Ex: Je suis pressé...)</label>
+        <textarea id="specialRequests" rows="2" placeholder="Optionnel..."></textarea>
+      </div>
+
+      <button class="checkout" id="sendOrder" type="button">Envoyer la commande</button>
+    </div>
+  </div>
+
+  <!-- Payment Options Overlay -->
+  <div class="overlay" id="paymentOverlay">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="paymentTitle">Mode de Paiement</h2>
+        <button class="close" id="closePayment" type="button">×</button>
+      </div>
+      <p style="color:#69736b; font-size:14px; margin-bottom:16px;" id="paymentDesc">Cliquez sur un mode de paiement pour envoyer votre commande :</p>
+      
+      <div class="pay-option" id="payLaterOption" onclick="choosePayment('later')">
+        <span class="icon">⏳</span>
+        <div><strong id="payLater">Payer plus tard</strong><br><span style="font-size:12px; color:#69736b;" id="payLaterDesc">À la caisse après le repas</span></div>
+      </div>
+      <div class="pay-option" onclick="choosePayment('cashier')">
+        <span class="icon">💵</span>
+        <div><strong id="payCashier">Payer à la caisse</strong><br><span style="font-size:12px; color:#69736b;" id="payCashierDesc">Espèces ou carte sur le terminal</span></div>
+      </div>
+      <div class="pay-option" onclick="choosePayment('applepay')" style="opacity:0.6;">
+        <span class="icon">🍎</span>
+        <div><strong id="payApple">Apple Pay</strong><br><span style="font-size:12px; color:#e35d5d; font-weight:bold;">⚠️ Bientôt disponible</span></div>
+      </div>
+      <div class="pay-option" onclick="choosePayment('googlepay')" style="opacity:0.6;">
+        <span class="icon">🤖</span>
+        <div><strong id="payGoogle">Google Pay</strong><br><span style="font-size:12px; color:#e35d5d; font-weight:bold;">⚠️ Bientôt disponible</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Reader Animation Overlay -->
+  <div class="overlay" id="readerOverlay">
+    <div class="panel" style="text-align:center;">
+      <div class="panel-head">
+        <h2 id="readerTitle">Paiement à la Caisse</h2>
+        <button class="close" id="closeReader" type="button">×</button>
+      </div>
+      <div class="reader-animation">
+        <div class="reader-icon">💳</div>
+        <div class="arrow-down">⬇️</div>
+        <div class="reader-icon">📟</div>
+      </div>
+      <h3 style="color:var(--green); margin-bottom:10px;" id="readerMsg">Veuillez vous approcher de la caisse</h3>
+      <p style="color:#69736b; font-size:14px;" id="readerSub">Présentez votre carte ou téléphone sur le terminal.</p>
+      <button class="checkout" id="finishPayment" style="margin-top:20px;">J'ai payé</button>
+    </div>
+  </div>
+
+  <!-- Dish Details Overlay -->
+  <div class="overlay" id="dishDetailOverlay">
+    <div class="panel" style="text-align:left;">
+      <div class="panel-head" style="margin-bottom:16px;">
+        <h2 id="detailDishName">Nom du plat</h2>
+        <button class="close" onclick="closeDishDetail()" type="button">×</button>
+      </div>
+      <img id="detailDishImg" class="dish-detail-img" src="" alt="Dish">
+      <div id="detailDishPrice" class="dish-detail-price">0,00 €</div>
+      <div id="detailDishDesc" class="dish-detail-desc">Description...</div>
+      <button class="checkout" onclick="addFromDetail()" style="margin-top:10px;">+ Ajouter au panier</button>
+    </div>
+  </div>
+
+  <script>
+    const RESTAURANT = "everest";
+    let language = localStorage.getItem('language') || 'fr';
+    let activeCategory = "all";
+    let allDishes = [];
+    let categories = [];
+    const basket = {};
+    let payLaterEnabled = true;
+    let currentDetailDishId = null;
+
+    const translations = {
+      fr: {
+        badge:"Cuisine indienne & népalaise", heroTitle:"Bienvenue chez Everest",
+        heroText:"Découvrez nos plats inspirés des cuisines indienne et népalaise.",
+        menuTitle:"Notre menu", menuSubtitle:"Choisissez une catégorie, puis ajoutez vos plats.",
+        all:"Tout", add:"Ajouter", basket:"Votre panier", basketTitle:"Votre panier", viewBasket:"Voir le panier",
+        nameLabel:"Votre prénom (facultatif)", itemSingular:"article", itemPlural:"articles",
+        empty:"Votre panier est vide. Ajoutez un plat pour commencer.", total:"Total estimé", placeholder:"Prénom",
+        sendOrder:"Envoyer la commande", checkoutNote:"Ceci est une démonstration.",
+        footerNote:"Menu Everest Restaurant", alertEmpty:"Votre panier est vide.",
+        alertSent:"Commande envoyée ! Merci.",
+        english:"English", french:"Français",
+        shareTitle:"📢 Partager Everest Restaurant", shareText:"Aidez-nous à nous faire connaître !",
+        loyaltyTitle:"🎁 Rejoignez notre Club Fidélité", loyaltyText:"Inscrivez-vous pour recevoir des offres exclusives !",
+        subNamePlaceholder:"Votre nom", subEmailPlaceholder:"Votre email", joinBtn:"Rejoindre",
+        subSuccess:"✅ Merci de nous avoir rejoint ! Nous vous enverrons des offres exclusives.",
+        subError:"Erreur. Veuillez réessayer.",
+        detailsTitle:"📍 Détails du Restaurant", detailsAddressLabel:"Adresse :", detailsPhoneLabel:"Téléphone :", 
+        detailsHoursLabel:"Horaires :", detailsHoursValue:"Mar–Dim 12:00 – 14:30, 19:00 – 22:30 (Fermé le lundi)",
+        paymentTitle:"Mode de Paiement", paymentDesc:"Cliquez sur un mode de paiement pour envoyer votre commande :",
+        payApple:"Apple Pay", payGoogle:"Google Pay", payCashier:"Payer à la caisse",
+        payCashierDesc:"Espèces ou carte sur le terminal",
+        readerTitle:"Paiement à la Caisse", readerMsg:"Veuillez vous approcher de la caisse",
+        readerSub:"Présentez votre carte ou votre téléphone sur le terminal de paiement.", readerBtn:"J'ai payé",
+        phoneLabel:"Numéro de téléphone", phoneNote:"(Important pour à emporter)", phonePlaceholder:"Ex: 06 12 34 56 78",
+        payLater:"Payer plus tard", payLaterDesc:"À la caisse après le repas"
+      },
+      en: {
+        badge:"Indian & Nepalese cuisine", heroTitle:"Welcome to Everest",
+        heroText:"Explore dishes inspired by Indian and Nepalese cooking.",
+        menuTitle:"Our menu", menuSubtitle:"Choose a category, then add dishes.",
+        all:"All", add:"Add", basket:"Your basket", basketTitle:"Your basket", viewBasket:"View basket",
+        nameLabel:"Your first name (optional)", itemSingular:"item", itemPlural:"items",
+        empty:"Your basket is empty. Add a dish to get started.", total:"Estimated total", placeholder:"First name",
+        sendOrder:"Send order", checkoutNote:"This is a demo.",
+        footerNote:"Everest Restaurant Menu", alertEmpty:"Your basket is empty.",
+        alertSent:"Order sent! Thank you.",
+        english:"English", french:"Français",
+        shareTitle:"📢 Share Everest Restaurant", shareText:"Help us spread the word!",
+        loyaltyTitle:"🎁 Join our Loyalty Club", loyaltyText:"Sign up for exclusive offers and discounts!",
+        subNamePlaceholder:"Your Name", subEmailPlaceholder:"Your Email", joinBtn:"Join",
+        subSuccess:"✅ Thank you for joining! We'll send you exclusive offers.", subError:"Error. Please try again.",
+        detailsTitle:"📍 Restaurant Details", detailsAddressLabel:"Address:", detailsPhoneLabel:"Phone:", 
+        detailsHoursLabel:"Hours:", detailsHoursValue:"Tue–Sun 12:00 – 14:30, 19:00 – 22:30 (Closed Mondays)",
+        paymentTitle:"Payment Method", paymentDesc:"Click on a payment method to send your order:",
+        payApple:"Apple Pay", payGoogle:"Google Pay", payCashier:"Pay at Cashier",
+        payCashierDesc:"Cash or card on terminal",
+        readerTitle:"Pay at Cashier", readerMsg:"Please go to the cashier",
+        readerSub:"Tap your card or phone on the payment terminal.", readerBtn:"I have paid",
+        phoneLabel:"Phone Number", phoneNote:"(Important for takeaway)", phonePlaceholder:"Ex: 06 12 34 56 78",
+        payLater:"Pay Later", payLaterDesc:"At the cashier after your meal"
+      }
+    };
+
+    const t = key => translations[language][key] || key;
+    const euro = amount => new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-IE", {style:"currency",currency:"EUR"}).format(amount);
+
+    async function loadMenu() {
+      try {
+        const res = await fetch('/api/menu', { headers: { 'x-restaurant': RESTAURANT } });
+        const data = await res.json();
+        categories = data.categories || [];
+        allDishes = data.dishes || [];
+        if (!categories.find(c => c.id === "all")) categories = [{ id: "all", fr: "Tout", en: "All" }, ...categories];
+        renderCategories();
+        renderDishes();
+      } catch (e) {
+        document.getElementById('menuGrid').innerHTML = '<div class="empty">Erreur de chargement du menu.</div>';
+      }
+    }
+
+    function renderCategories() {
+      document.getElementById("categories").innerHTML = categories.map(cat =>
+        `<button class="category ${activeCategory===cat.id?"active":""}" data-cat="${cat.id}" type="button">${language==="fr"?cat.fr:cat.en}</button>`
+      ).join("");
+      document.querySelectorAll("[data-cat]").forEach(btn => btn.addEventListener("click", () => {
+        activeCategory = btn.dataset.cat; renderCategories(); renderDishes();
+      }));
+    }
+
+    function renderDishes() {
+      let shown = allDishes.filter(d => d.active !== false);
+      
+      if (activeCategory !== "all") {
+        shown = shown.filter(d => d.category === activeCategory);
+      }
+
+      document.getElementById("menuGrid").innerHTML = shown.length ? shown.map(d => `
+        <article class="card" onclick="showDishDetail(${d.id})">
+          <img class="food-photo" src="${d.photo}" alt="${language==="fr"?d.fr:d.en}" loading="lazy" onerror="this.style.display='none'">
+          <div class="card-content">
+            <h3>${language==="fr"?d.fr:d.en}</h3>
+            <p class="description">${language==="fr"?d.descFr:d.descEn}</p>
+            <div class="card-bottom">
+              <span class="price">${euro(d.price)}</span>
+              <button class="add" onclick="event.stopPropagation(); addToBasket(${d.id}, this)" type="button">+ ${t("add")}</button>
+            </div>
+          </div>
+        </article>`).join("") : '<div class="empty">Aucun plat.</div>';
+    }
+
+    function showDishDetail(id) {
+      const d = allDishes.find(x => x.id === id);
+      if (!d) return;
+      currentDetailDishId = id;
+      document.getElementById('detailDishName').textContent = language === "fr" ? d.fr : d.en;
+      document.getElementById('detailDishImg').src = d.photo;
+      document.getElementById('detailDishPrice').textContent = euro(d.price);
+      document.getElementById('detailDishDesc').textContent = language === "fr" ? d.descFr : d.descEn;
+      document.getElementById('dishDetailOverlay').classList.add('show');
+    }
+
+    function closeDishDetail() {
+      document.getElementById('dishDetailOverlay').classList.remove('show');
+      currentDetailDishId = null;
+    }
+
+    function addFromDetail() {
+      if (currentDetailDishId) {
+        addToBasket(currentDetailDishId, null);
+        closeDishDetail();
+      }
+    }
+
+    function addToBasket(id, btn) {
+      basket[id] = (basket[id] || 0) + 1;
+      renderBasketSummary();
+      if (btn) {
+        btn.textContent = "✓";
+        setTimeout(() => { if(btn.isConnected) btn.textContent = "+ " + t("add"); }, 700);
+      }
+    }
+
+    function basketCount() { return Object.values(basket).reduce((sum,qty)=>sum+qty,0); }
+    function basketTotal() { return allDishes.reduce((sum,d) => sum + (d.price||0) * (basket[d.id]||0), 0); }
+    function finalTotal() { return basketTotal(); }
+
+    function renderBasketSummary() {
+      const count = basketCount();
+      document.getElementById("basketLabel").textContent = t("basket");
+      document.getElementById("basketSummary").textContent = `${count} ${count===1?t("itemSingular"):t("itemPlural")} · ${euro(finalTotal())}`;
+      document.getElementById("openBasket").textContent = t("viewBasket");
+      renderBasketItems();
+    }
+
+    function renderBasketItems() {
+      const items = allDishes.filter(d => basket[d.id]);
+      document.getElementById("basketItems").innerHTML = items.length ? items.map(d => `
+        <div class="basket-item">
+          <div><div class="item-name">${language==="fr"?d.fr:d.en}</div><div class="item-price">${euro(d.price)} × ${basket[d.id]}</div></div>
+          <div class="qty">
+            <button data-minus="${d.id}" type="button">−</button>
+            <strong>${basket[d.id]}</strong>
+            <button data-plus="${d.id}" type="button">+</button>
+          </div>
+        </div>`).join("") : `<p style="color:var(--muted);padding:20px 0">${t("empty")}</p>`;
+      document.getElementById("basketTotal").textContent = euro(finalTotal());
+      document.getElementById("totalLabel").textContent = t("total");
+      document.querySelectorAll("[data-minus]").forEach(btn => btn.addEventListener("click", () => {
+        const id=Number(btn.dataset.minus); basket[id]--; if(basket[id]<=0) delete basket[id]; renderBasketSummary();
+      }));
+      document.querySelectorAll("[data-plus]").forEach(btn => btn.addEventListener("click", () => {
+        const id=Number(btn.dataset.plus); basket[id]++; renderBasketSummary();
+      }));
+    }
+
+    function applyLanguage() {
+      const map = {
+        badge:"badge", heroTitle:"heroTitle", heroText:"heroText", menuTitle:"menuTitle", menuSubtitle:"menuSubtitle",
+        basketTitle:"basketTitle", nameLabel:"nameLabel", sendOrder:"sendOrder", checkoutNote:"checkoutNote", footerNote:"footerNote",
+        shareTitle:"shareTitle", shareText:"shareText", loyaltyTitle:"loyaltyTitle", loyaltyText:"loyaltyText", joinBtn:"joinBtn",
+        detailsTitle:"detailsTitle", detailsAddressLabel:"detailsAddressLabel", detailsPhoneLabel:"detailsPhoneLabel", 
+        detailsHoursLabel:"detailsHoursLabel", detailsHoursValue:"detailsHoursValue",
+        paymentTitle:"paymentTitle", paymentDesc:"paymentDesc",
+        payApple:"payApple", payGoogle:"payGoogle", payCashier:"payCashier", payCashierDesc:"payCashierDesc",
+        readerTitle:"readerTitle", readerMsg:"readerMsg", readerSub:"readerSub", readerBtn:"readerBtn",
+        phoneLabel:"phoneLabel", phoneNote:"phoneNote", payLater:"payLater", payLaterDesc:"payLaterDesc"
+      };
+      Object.entries(map).forEach(([key,id]) => {
+        const el = document.getElementById(id); if (el) el.textContent = t(key);
+      });
+      document.getElementById("customerName").placeholder = t("placeholder");
+      document.getElementById("subName").placeholder = t("subNamePlaceholder");
+      document.getElementById("subEmail").placeholder = t("subEmailPlaceholder");
+      document.getElementById("phoneInput").placeholder = t("phonePlaceholder");
+      document.getElementById("langButton").textContent = language==="fr"?t("english"):t("french");
+      renderCategories(); renderDishes(); renderBasketSummary();
+    }
+
+    async function loadAppSettings() {
+      try {
+        const res = await fetch('/api/settings', { headers: { 'x-restaurant': RESTAURANT } });
+        if (!res.ok) throw new Error("Failed to load settings");
+        const data = await res.json();
+        payLaterEnabled = data.payLaterEnabled !== false;
+        const payLaterBtn = document.getElementById('payLaterOption');
+        if (payLaterBtn) {
+          payLaterBtn.style.display = payLaterEnabled ? 'flex' : 'none';
+        }
+      } catch (e) { console.error("Settings error:", e); }
+    }
+
+    function openPaymentOptions() {
+      if (!basketCount()) { alert(t("alertEmpty")); return; }
+      const orderType = document.querySelector('input[name="orderType"]:checked').value;
+      const tableInput = document.getElementById("tableInput").value.trim();
+      if (orderType === 'dinein' && !tableInput) {
+        alert(language === 'fr' ? 'Veuillez entrer votre numéro de table.' : 'Please enter your table number.');
+        return;
+      }
+      document.getElementById("basketOverlay").classList.remove("show");
+      document.getElementById("paymentOverlay").classList.add("show");
+    }
+
+    function buildOrder(paymentMethod) {
+      const orderType = document.querySelector('input[name="orderType"]:checked').value;
+      const tableInput = document.getElementById("tableInput").value.trim();
+      const items = allDishes.filter(d => basket[d.id]).map(d => ({
+        id: d.id, name: language==="fr"?d.fr:d.en, price: d.price, qty: basket[d.id]
+      }));
+      return {
+        restaurant: RESTAURANT,
+        orderType: orderType,
+        table: orderType === 'dinein' ? tableInput : 'Takeaway',
+        customerName: document.getElementById("customerName").value || "",
+        customerPhone: document.getElementById("phoneInput").value || "",
+        specialRequests: document.getElementById("specialRequests").value || "",
+        items,
+        subtotal: basketTotal(),
+        total: finalTotal(),
+        paymentMethod: paymentMethod,
+        deviceInfo: navigator.userAgent,
+        language
+      };
+    }
+
+    async function choosePayment(method) {
+      if (method === 'cashier') {
+        document.getElementById("paymentOverlay").classList.remove("show");
+        document.getElementById("readerOverlay").classList.add("show");
+        return;
+      }
+      if (method === 'later') {
+        const order = buildOrder('later');
+        await sendOrderToServer(order);
+        return;
+      }
+      if (method === 'applepay' || method === 'googlepay') {
+        const appName = method === 'applepay' ? 'Apple Pay' : 'Google Pay';
+        alert(language === 'fr' 
+          ? `⚠️ ${appName} n'est pas encore activé.\n\nVeuillez choisir "Payer plus tard" ou "Payer à la caisse".` 
+          : `⚠️ ${appName} is not activated yet.\n\nPlease choose "Pay Later" or "Pay at Cashier".`);
+        return;
+      }
+    }
+
+    async function finishPayment() {
+      document.getElementById("readerOverlay").classList.remove("show");
+      const order = buildOrder('cashier');
+      await sendOrderToServer(order);
+    }
+
+    async function sendOrderToServer(order) {
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-restaurant': RESTAURANT },
+          body: JSON.stringify(order)
+        });
+        if (!res.ok) throw new Error('Erreur serveur');
+        alert(t("alertSent"));
+        Object.keys(basket).forEach(k => delete basket[k]);
+        renderBasketSummary();
+        document.getElementById("paymentOverlay").classList.remove("show");
+        document.getElementById("readerOverlay").classList.remove("show");
+      } catch (e) { alert("Erreur: " + e.message); }
+    }
+
+    function setupShareLinks() {
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent("Check out Everest Restaurant!");
+      document.getElementById('shareFacebook').href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+      document.getElementById('shareTwitter').href = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+      document.getElementById('shareWhatsapp').href = `https://wa.me/?text=${text}%20${url}`;
+    }
+
+    async function subscribeToLoyalty() {
+      const name = document.getElementById('subName').value.trim();
+      const email = document.getElementById('subEmail').value.trim();
+      const msg = document.getElementById('subMsg');
+      if (!email) { msg.textContent = "Please enter your email."; msg.style.color = "#e35d5d"; return; }
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-restaurant': RESTAURANT },
+          body: JSON.stringify({ name, email })
+        });
+        if (res.ok) { msg.textContent = t('subSuccess'); msg.style.color = "#173d2b"; document.getElementById('subName').value=''; document.getElementById('subEmail').value=''; }
+        else { msg.textContent = t('subError'); msg.style.color = "#e35d5d"; }
+      } catch(e) { msg.textContent = t('subError'); msg.style.color = "#e35d5d"; }
+    }
+
+    document.getElementById("langButton").addEventListener("click", () => {
+      language = language === "fr" ? "en" : "fr";
+      localStorage.setItem('language', language);
+      applyLanguage();
+    });
+    document.getElementById("openBasket").addEventListener("click", () => document.getElementById("basketOverlay").classList.add("show"));
+    document.getElementById("closeBasket").addEventListener("click", () => document.getElementById("basketOverlay").classList.remove("show"));
+    document.getElementById("closePayment").addEventListener("click", () => document.getElementById("paymentOverlay").classList.remove("show"));
+    document.getElementById("closeReader").addEventListener("click", () => document.getElementById("readerOverlay").classList.remove("show"));
+    document.getElementById("sendOrder").addEventListener("click", openPaymentOptions);
+    document.getElementById("finishPayment").addEventListener("click", finishPayment);
+
+    document.getElementById("basketOverlay").addEventListener("click", e => { if (e.target.id === "basketOverlay") e.currentTarget.classList.remove("show"); });
+    document.getElementById("paymentOverlay").addEventListener("click", e => { if (e.target.id === "paymentOverlay") e.currentTarget.classList.remove("show"); });
+    document.getElementById("readerOverlay").addEventListener("click", e => { if (e.target.id === "readerOverlay") e.currentTarget.classList.remove("show"); });
+    document.getElementById("dishDetailOverlay").addEventListener("click", e => { if (e.target.id === "dishDetailOverlay") closeDishDetail(); });
+
+    const urlTable = new URLSearchParams(window.location.search).get('table');
+    if (urlTable && urlTable !== '?') document.getElementById("tableInput").value = urlTable;
+
+    document.querySelectorAll('input[name="orderType"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const isTakeaway = e.target.value === 'takeaway';
+        document.getElementById("tableRow").style.display = isTakeaway ? 'none' : 'grid';
+        document.getElementById("phoneRow").style.display = isTakeaway ? 'grid' : 'none';
+      });
+    });
+
+    applyLanguage(); 
+    loadMenu(); 
+    setupShareLinks(); 
+    loadAppSettings();
+  </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<title>Kitchen — Everest Restaurant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; background: #1a1a1a; color: #eee; overflow-x: hidden; }
+
+  /* Login */
+  .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a1a; padding: 20px; }
+  .login-box { background: #2a2a2a; padding: 40px 30px; border-radius: 16px; width: 100%; max-width: 380px; text-align: center; border: 1px solid #333; }
+  .login-box h1 { font-size: 24px; margin-bottom: 20px; color: #d9a441; }
+  .login-box input { width: 100%; padding: 16px; border: 1px solid #444; background: #1a1a1a; color: #eee; border-radius: 10px; font-size: 16px; margin-bottom: 14px; }
+  .login-box button { width: 100%; padding: 16px; border: 0; border-radius: 10px; background: #d9a441; color: #1a1a1a; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .login-box p { color: #e35d5d; margin-top: 12px; font-size: 14px; }
+
+  /* Enable Sound Banner */
+  .sound-banner { position: fixed; bottom: 0; left: 0; right: 0; background: #d9a441; color: #1a1a1a; padding: 16px; text-align: center; font-weight: 800; font-size: 16px; cursor: pointer; z-index: 100; border: 0; width: 100%; }
+  .sound-banner.hidden { display: none; }
+
+  /* Header */
+  header { background: #111; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d9a441; position: sticky; top: 0; z-index: 5; flex-wrap: wrap; gap: 8px; }
+  header h1 { font-size: 16px; color: #d9a441; }
+  .header-info { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #999; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .logout-btn { background: transparent; border: 1px solid #444; color: #999; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+
+  /* Orders grid */
+  main { padding: 12px; }
+  .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .empty-state { text-align: center; padding: 80px 20px; color: #666; font-size: 18px; grid-column: 1/-1; }
+
+  .order-card { background: #2a2a2a; border-radius: 12px; overflow: hidden; border-left: 6px solid #d9a441; display: flex; flex-direction: column; }
+  .order-card.status-cooking { border-left-color: #2196f3; }
+  .order-card.status-ready { border-left-color: #4caf50; opacity: 0.75; }
+  .order-card.new-order { animation: flash 1s ease-in-out 3; }
+  @keyframes flash { 0%, 100% { background: #2a2a2a; } 50% { background: #4a3a1a; } }
+
+  .order-head { padding: 14px 16px; background: #222; display: flex; justify-content: space-between; align-items: center; }
+  .order-head .table-num { font-size: 22px; font-weight: 800; color: #d9a441; }
+  .order-head .order-id { font-size: 12px; color: #888; }
+  .order-head .order-time { font-size: 12px; color: #888; }
+
+  .order-body { padding: 14px 16px; flex: 1; }
+  .order-items { list-style: none; }
+  .order-items li { padding: 10px 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; font-size: 16px; align-items: center; }
+  .order-items li:last-child { border-bottom: 0; }
+  .order-items .qty { background: #d9a441; color: #1a1a1a; font-weight: 800; border-radius: 6px; padding: 3px 10px; margin-right: 10px; display: inline-block; min-width: 32px; text-align: center; }
+  
+  /* Special Requests Style */
+  .special-requests-box { background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 14px; font-weight: bold; border-left: 4px solid #ffc107; }
+  .order-customer { margin-top: 8px; font-size: 13px; color: #888; font-style: italic; }
+  .order-phone { font-size: 13px; color: #d9a441; font-weight: bold; margin-bottom: 8px; }
+
+  .order-footer { padding: 12px 16px; background: #222; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .order-footer button { flex: 1; padding: 14px; border: 0; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 15px; min-width: 100px; }
+  .btn-start { background: #2196f3; color: white; }
+  .btn-ready { background: #4caf50; color: white; }
+  .btn-done { background: #555; color: white; }
+  .btn-cancel { background: #e35d5d; color: white; }
+  .btn-item-x { background: #e35d5d; color: white; border: 0; border-radius: 4px; padding: 2px 8px; font-size: 14px; cursor: pointer; margin-left: 8px; }
+
+  .order-total { font-size: 15px; color: #4caf50; font-weight: 700; }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    .orders-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 14px; }
+    .order-head .table-num { font-size: 20px; }
+  }
+
+  body { overscroll-behavior: none; }
+  .flash-overlay { position: fixed; inset: 0; background: #d9a441; opacity: 0; pointer-events: none; z-index: 200; }
+  .flash-overlay.active { animation: overlayFlash 1.5s ease-out; }
+  @keyframes overlayFlash { 0% { opacity: 0.4; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="flash-overlay" id="flashOverlay"></div>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>🍳 Kitchen Screen</h1>
+    <input type="password" id="pwd" placeholder="Mot de passe cuisine" autocomplete="current-password">
+    <button id="loginBtn">Se connecter</button>
+    <p id="loginMsg"></p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <h1>🍳 Everest — Cuisine</h1>
+    <div class="header-info">
+      <span><span class="status-dot"></span><span id="connectionStatus">Live</span></span>
+      <span id="clock"></span>
+      <button class="logout-btn" id="logoutBtn">Déconnexion</button>
+    </div>
+  </header>
+  <main>
+    <div class="orders-grid" id="ordersGrid">
+      <div class="empty-state">Chargement…</div>
+    </div>
+  </main>
+</div>
+
+<button class="sound-banner" id="soundBanner">🔔 Touchez pour activer le son</button>
+
+<script>
+const RESTAURANT = "everest";
+let PWD = "";
+let lastOrdersHash = "";
+let knownOrderIds = new Set();
+let soundEnabled = false;
+let audioCtx = null;
+let firstLoad = true;
+
+// ---------- Login ----------
+document.getElementById('loginBtn').onclick = async () => {
+  PWD = document.getElementById('pwd').value;
+  try {
+    const r = await fetch('/api/admin/orders', {
+      headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT }
+    });
+    if (r.status === 401) throw new Error('Mot de passe incorrect');
+    if (r.status === 403) throw new Error('Abonnement expiré');
+    if (!r.ok) throw new Error('Erreur serveur');
+    
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    startKitchen();
+  } catch(e) { 
+    document.getElementById('loginMsg').textContent = e.message; 
+  }
+};
+
+document.getElementById('pwd').addEventListener('keypress', e => { 
+  if (e.key === 'Enter') document.getElementById('loginBtn').click(); 
+});
+
+document.getElementById('logoutBtn').onclick = () => location.reload();
+
+// ---------- Sound ----------
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playDing() {
+  if (!soundEnabled || !audioCtx) return;
+  const playTone = (delay) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime + delay);
+    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + delay + 0.1);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.4);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + 0.4);
+  };
+  playTone(0);
+  playTone(0.25);
+}
+
+document.getElementById('soundBanner').onclick = () => {
+  initAudio();
+  audioCtx.resume();
+  soundEnabled = true;
+  document.getElementById('soundBanner').classList.add('hidden');
+  const testTone = (delay) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime + delay);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.3);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + 0.3);
+  };
+  testTone(0);
+  testTone(0.2);
+};
+
+// ---------- Kitchen polling ----------
+function startKitchen() {
+  loadOrders();
+  setInterval(loadOrders, 5000);
+  setInterval(updateClock, 1000);
+  updateClock();
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadOrders() {
+  try {
+    const r = await fetch('/api/admin/orders', {
+      headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT }
+    });
+    if (!r.ok) return;
+    const orders = await r.json();
+
+    // Hide 'kitchen_done' from the kitchen screen
+    const active = orders.filter(o => o.status !== 'done' && o.status !== 'cancelled' && o.status !== 'kitchen_done');
+    active.sort((a, b) => b.id - a.id);
+
+    const currentIds = new Set(active.map(o => o.id));
+    if (firstLoad) {
+      knownOrderIds = currentIds;
+      firstLoad = false;
+    } else {
+      let hasNew = false;
+      for (const id of currentIds) {
+        if (!knownOrderIds.has(id)) { hasNew = true; break; }
+      }
+      if (hasNew) {
+        playDing();
+        triggerFlash();
+      }
+      knownOrderIds = currentIds;
+    }
+
+    const hash = JSON.stringify(active.map(o => [o.id, o.status, o.items.length]));
+    if (hash === lastOrdersHash) return;
+    lastOrdersHash = hash;
+
+    renderOrders(active);
+    document.getElementById('connectionStatus').textContent = 'Live';
+  } catch (e) {
+    document.getElementById('connectionStatus').textContent = 'Hors ligne';
+  }
+}
+
+function triggerFlash() {
+  const overlay = document.getElementById('flashOverlay');
+  overlay.classList.remove('active');
+  void overlay.offsetWidth;
+  overlay.classList.add('active');
+}
+
+function renderOrders(orders) {
+  const grid = document.getElementById('ordersGrid');
+  if (!orders.length) {
+    grid.innerHTML = '<div class="empty-state">Aucune commande en cours 🍽️</div>';
+    return;
+  }
+  grid.innerHTML = orders.map(o => {
+    const status = o.status || 'new';
+    const time = new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    const itemsHtml = (o.items || []).map(i => `
+      <li>
+        <span><span class="qty">${i.qty}</span>${i.name}</span>
+        <button class="btn-item-x" onclick="removeItem(${o.id}, ${i.id})" title="Retirer ce plat">×</button>
+      </li>`).join('');
+    
+    let buttons = '';
+    if (status === 'new') {
+      buttons = `
+        <button class="btn-start" onclick="setStatus(${o.id}, 'cooking')">▶ Commencer</button>
+        <button class="btn-cancel" onclick="setStatus(${o.id}, 'cancelled')">🚫 Annuler</button>`;
+    } else if (status === 'cooking') {
+      buttons = `
+        <button class="btn-ready" onclick="setStatus(${o.id}, 'ready')">✓ Prêt</button>
+        <button class="btn-cancel" onclick="setStatus(${o.id}, 'cancelled')">🚫 Annuler</button>`;
+    } else if (status === 'ready') {
+      buttons = `
+        <button class="btn-done" onclick="setStatus(${o.id}, 'kitchen_done')">🗑️ Terminer</button>`;
+    }
+
+    const phoneDisplay = o.customerPhone && o.orderType === 'takeaway' ? `<div class="order-phone">📞 ${o.customerPhone}</div>` : '';
+    const specialReq = o.specialRequests ? `<div class="special-requests-box">📝 Note client : ${o.specialRequests}</div>` : '';
+
+    return `
+      <div class="order-card status-${status}">
+        <div class="order-head">
+          <div>
+            <div class="table-num">${o.orderType === 'takeaway' ? '🥡 À Emporter' : '🍽️ Table ' + (o.table || '?')}</div>
+            <div class="order-id">#${o.id}</div>
+          </div>
+          <div class="order-time">${time}</div>
+        </div>
+        <div class="order-body">
+          ${phoneDisplay}
+          <ul class="order-items">${itemsHtml}</ul>
+          ${o.customerName ? `<div class="order-customer">Client: ${o.customerName}</div>` : ''}
+          ${specialReq}
+        </div>
+        <div class="order-footer">
+          <div class="order-total">${(o.total || 0).toFixed(2)} €</div>
+          ${buttons}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function setStatus(orderId, status) {
+  try {
+    const r = await fetch(`/api/admin/orders/${orderId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': PWD,
+        'x-restaurant': RESTAURANT
+      },
+      body: JSON.stringify({ status })
+    });
+    if (r.ok) {
+      lastOrdersHash = "";
+      loadOrders();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function removeItem(orderId, dishId) {
+  const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+  const orders = await r.json();
+  const order = orders.find(o => o.id === orderId);
+  if (!order) return;
+  const newItems = order.items.filter(i => i.id !== dishId);
+  await fetch(`/api/admin/orders/${orderId}/items`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ items: newItems })
+  });
+  lastOrdersHash = "";
+  loadOrders();
+}
+window.removeItem = removeItem;
+window.setStatus = setStatus;
+
+// ---------- Keep screen awake ----------
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator) {
+      await navigator.wakeLock.request('screen');
+    }
+  } catch (e) { /* ignore */ }
+}
+document.addEventListener('click', keepAwake, { once: true });
+</script>
+</body>
+</html>

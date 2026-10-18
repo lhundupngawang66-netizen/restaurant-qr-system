@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Everest Restaurant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; color: #20251f; height: 100vh; display: flex; flex-direction: column; }
+  
+  /* Login */
+  .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #173d2b; padding: 20px; }
+  .login-box { background: white; padding: 40px 30px; border-radius: 16px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+  .login-box h1 { font-size: 24px; margin-bottom: 20px; color: #173d2b; }
+  .login-box input { width: 100%; padding: 16px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; margin-bottom: 14px; }
+  .login-box button { width: 100%; padding: 16px; border: 0; border-radius: 10px; background: #d9a441; color: #1a1a1a; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .login-box p { color: #e35d5d; margin-top: 12px; font-size: 14px; }
+
+  /* Header */
+  header { background: #173d2b; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 18px; }
+  .header-info { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+  .logout-btn { background: transparent; border: 1px solid #ffffff70; color: white; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+
+  /* Tabs */
+  .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+  .tab { flex: 1; padding: 14px 10px; text-align: center; font-weight: 700; color: #69736b; cursor: pointer; border: 0; background: transparent; font-size: 14px; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .tab.active { color: #173d2b; border-bottom-color: #173d2b; }
+
+  /* Main Content */
+  main { flex: 1; padding: 16px; overflow-y: auto; }
+  
+  /* Menu Section */
+  .menu-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .btn-primary { background: #173d2b; color: white; padding: 10px 18px; border: 0; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .form-grid { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: grid; gap: 10px; max-width: 600px; display: none; }
+  .form-grid.active { display: grid; }
+  .form-grid input, .form-grid select, .form-grid textarea { padding: 10px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-family: inherit; }
+  .form-grid label { font-weight: 700; font-size: 13px; margin-top: 4px; }
+  
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+  th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { background: #f9f9f9; font-weight: 700; }
+  td .btn-icon { background: none; border: 0; cursor: pointer; font-size: 16px; margin-right: 6px; }
+  .status-btn { padding: 6px 12px; border: 0; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; width: 80px; text-align: center; }
+  .status-on { background: #d4edda; color: #155724; }
+  .status-off { background: #f8d7da; color: #721c24; }
+
+  /* Cashier / Tables Section */
+  .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  
+  /* Status Colors for Cards */
+  .table-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; border-top: 5px solid #173d2b; transition: 0.3s; }
+  .table-card.status-new { border-top-color: #d9a441; } /* Yellow */
+  .table-card.status-cooking { border-top-color: #2196f3; } /* Blue */
+  .table-card.status-ready { border-top-color: #4caf50; } /* Green */
+  .table-card.takeaway { border-left: 5px solid #6b21a8; } /* Purple for takeaway */
+
+  .table-head { padding: 14px 16px; background: #f9f9f9; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+  .table-head .table-num { font-size: 20px; font-weight: 800; color: #173d2b; }
+  .table-head .table-total { font-size: 18px; font-weight: 800; color: #d9a441; }
+  .table-body { padding: 14px 16px; flex: 1; max-height: 300px; overflow-y: auto; }
+  .bill-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 15px; }
+  .bill-item:last-child { border-bottom: 0; }
+  .bill-item .qty { background: #173d2b; color: white; font-weight: 800; border-radius: 4px; padding: 2px 8px; margin-right: 10px; font-size: 13px; }
+  .bill-item .item-x { background: #e35d5d; color: white; border: 0; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: 700; margin-left: 10px; }
+  .table-footer { padding: 12px 16px; background: #f9f9f9; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #eee; }
+  .table-footer .row { display: flex; gap: 8px; }
+  .table-footer button { flex: 1; padding: 10px; border: 0; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+  .btn-change { background: #f0f2f5; color: #20251f; border: 1px solid #ccc; }
+  .btn-add { background: #d9a441; color: #201a0b; }
+  .btn-pay { background: #173d2b; color: white; padding: 14px; font-size: 16px; }
+  .btn-split { background: #6b21a8; color: white; padding: 10px; font-size: 14px; }
+
+  /* History & Loyalty */
+  .history-list, .loyalty-list { display: flex; flex-direction: column; gap: 12px; }
+  .history-card, .loyalty-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #4caf50; }
+  .loyalty-card { border-left-color: #d9a441; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .history-card .row1 { display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; margin-bottom: 8px; }
+  .history-card .row2 { font-size: 13px; color: #69736b; margin-bottom: 4px; }
+  .history-card .device-tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-top: 6px; }
+  .btn-refund { background: #e35d5d; color: white; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 700; cursor: pointer; font-size: 12px; margin-left: 10px; }
+  .points-badge { background: #d9a441; color: #201a0b; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 13px; }
+
+  /* Modals */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: white; border-radius: 16px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; padding: 20px; }
+  .modal h3 { margin-bottom: 14px; color: #173d2b; }
+  .menu-list { list-style: none; }
+  .menu-list li { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  .menu-list li button { background: #173d2b; color: white; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
+  
+  /* Settings Toggle */
+  .settings-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; }
+  .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #eee; gap: 16px; }
+  .settings-row:last-child { border-bottom: 0; }
+  .settings-row strong { font-size: 16px; }
+  .settings-row p { color: #69736b; font-size: 13px; margin-top: 6px; }
+  .toggle-switch { position: relative; display: inline-block; width: 56px; height: 30px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 30px; transition: 0.3s; }
+  .toggle-slider:before { content: ""; position: absolute; height: 22px; width: 22px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: 0.3s; }
+  input:checked + .toggle-slider { background: #173d2b; }
+  input:checked + .toggle-slider:before { transform: translateX(26px); }
+
+  /* Split Payment Modal */
+  .split-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .split-row select { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+  .split-row input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+  .split-total { font-size: 20px; font-weight: 800; margin-top: 16px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>🔐 Admin Dashboard</h1>
+    <input type="password" id="pwd" placeholder="Mot de passe admin" autocomplete="current-password">
+    <button id="loginBtn">Se connecter</button>
+    <p id="loginMsg"></p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none; flex-direction: column; height: 100vh;">
+  <header>
+    <h1>⚙️ Everest — Tableau de Bord</h1>
+    <div class="header-info">
+      <span>🔄 Auto-refresh: 5s</span>
+      <button class="logout-btn" id="logoutBtn">Déconnexion</button>
+    </div>
+  </header>
+  
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tabMenu" onclick="switchTab('menu')">🍽️ Menu</button>
+    <button class="tab" id="tabCashier" onclick="switchTab('cashier')">💵 Caisse</button>
+    <button class="tab" id="tabLoyalty" onclick="switchTab('loyalty')">🎁 Fidélité</button>
+    <button class="tab" id="tabSettings" onclick="switchTab('settings')">⚙️ Paramètres</button>
+  </div>
+
+  <main>
+    <!-- MENU VIEW -->
+    <div id="menuView">
+      <div class="menu-toolbar">
+        <h2>Gestion du Menu</h2>
+        <button class="btn-primary" onclick="toggleDishForm()">+ Ajouter un plat</button>
+      </div>
+      
+      <div class="form-grid" id="dishForm">
+        <input type="hidden" id="d-id">
+        <label>Nom (FR)</label><input id="d-fr">
+        <label>Nom (EN)</label><input id="d-en">
+        <label>Prix €</label><input id="d-price" type="number" step="0.01">
+        <label>Catégorie</label>
+        <select id="d-cat"></select>
+        <label>Description (FR)</label><textarea id="d-descFr" rows="2"></textarea>
+        <label>Description (EN)</label><textarea id="d-descEn" rows="2"></textarea>
+        <label>URL de la photo</label><input id="d-photo">
+        
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer;">
+          <input type="checkbox" id="d-active" checked style="width:20px; height:20px;">
+          <span>✅ Plat Actif (Visible sur le menu)</span>
+        </label>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn-primary" onclick="saveDish()">💾 Enregistrer</button>
+          <button style="background:#ccc; color:#333;" onclick="toggleDishForm()">Annuler</button>
+        </div>
+      </div>
+
+      <table>
+        <thead><tr><th>ID</th><th>Nom</th><th>Catégorie</th><th>Prix</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody id="dishRows"></tbody>
+      </table>
+    </div>
+
+    <!-- CASHIER VIEW -->
+    <div id="cashierView" style="display:none;">
+      <div class="tabs" style="background:transparent; border-bottom:1px solid #ddd; margin-bottom:16px;">
+        <button class="tab active" id="subTabActive" onclick="switchSubTab('active')" style="flex:0; padding:10px 20px;">📋 Tables Actives</button>
+        <button class="tab" id="subTabHistory" onclick="switchSubTab('history')" style="flex:0; padding:10px 20px;">📜 Historique</button>
+      </div>
+      
+      <div id="subActiveView">
+        <div class="tables-grid" id="tablesGrid"><div class="empty-state">Chargement...</div></div>
+      </div>
+      <div id="subHistoryView" style="display:none;">
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </div>
+
+    <!-- LOYALTY VIEW -->
+    <div id="loyaltyView" style="display:none;">
+      <div class="menu-toolbar">
+        <h2>Club Fidélité</h2>
+        <button class="btn-primary" onclick="sendOfferPrompt()">✉️ Envoyer une Offre</button>
+      </div>
+      <p style="margin-bottom:16px; color:#69736b; font-size:14px;">Gérez vos clients fidèles. Ajoutez des points et envoyez des offres exclusives.</p>
+      <div class="loyalty-list" id="loyaltyList"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settingsView" style="display:none;">
+      <div class="menu-toolbar">
+        <h2>⚙️ Paramètres du Restaurant</h2>
+      </div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <strong>⏳ Autoriser le paiement plus tard</strong>
+            <p>Quand activé, les clients peuvent choisir "Payer plus tard" (à la caisse après le repas).</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="payLaterToggle" onchange="togglePayLater()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="margin-top:16px; font-size:13px; color:#69736b;">💡 Si désactivé, le bouton "Payer plus tard" disparaîtra du menu client.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal">
+    <h3>Ajouter un plat à <span id="modalTableNum"></span></h3>
+    <ul class="menu-list" id="modalMenuList"></ul>
+    <button onclick="closeModal()" style="width:100%; padding:12px; margin-top:15px; border:0; border-radius:8px; background:#f0f2f5; cursor:pointer;">Fermer</button>
+  </div>
+</div>
+
+<!-- Split Payment Modal (Updated Request #1) -->
+<div class="modal-overlay" id="splitModal">
+  <div class="modal">
+    <h3>💵 Encaisser - <span id="splitTableNum"></span></h3>
+    <p style="font-size:14px; color:#69736b; margin-bottom:16px;">Total restant : <strong id="splitTotalAmount">0.00 €</strong></p>
+    
+    <div class="split-row">
+      <select id="splitMethod">
+        <option value="cash">💵 Espèces</option>
+        <option value="card">💳 Carte</option>
+      </select>
+      <input type="number" id="splitAmount" placeholder="Montant €" step="0.01">
+    </div>
+    
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <button onclick="confirmSplitPayment()" class="btn-primary" style="flex:1; padding:14px; background:#173d2b; color:white; border:0; border-radius:8px; font-weight:700; cursor:pointer;">Valider le paiement</button>
+      <button onclick="closeSplitModal()" style="flex:1; padding:14px; background:#ccc; color:#333; border:0; border-radius:8px; font-weight:700; cursor:pointer;">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const RESTAURANT = "everest";
+let PWD = "";
+let allDishes = [];
+let categories = [];
+let currentModalOrderIds = [];
+let currentTab = 'menu';
+let currentSubTab = 'active';
+
+let currentSplitOrderIds = [];
+let currentSplitTotal = 0;
+
+// ---------- Login ----------
+document.getElementById('loginBtn').onclick = async () => {
+  PWD = document.getElementById('pwd').value;
+  try {
+    const r = await fetch('/api/admin/menu', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    if (r.status === 401) throw new Error('Mot de passe incorrect');
+    if (r.status === 403) throw new Error('Abonnement expiré');
+    if (!r.ok) throw new Error('Erreur serveur');
+    
+    const menuData = await r.json();
+    categories = menuData.categories || [];
+    allDishes = menuData.dishes || [];
+    
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    
+    initAdmin();
+  } catch(e) { document.getElementById('loginMsg').textContent = e.message; }
+};
+document.getElementById('pwd').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+document.getElementById('logoutBtn').onclick = () => location.reload();
+
+function initAdmin() {
+  renderCategoriesIntoSelect();
+  renderDishes();
+  loadCashier();
+  loadLoyalty();
+  loadSettings();
+  setInterval(() => {
+    if (currentTab === 'cashier') loadCashier();
+    if (currentTab === 'loyalty') loadLoyalty();
+  }, 5000);
+}
+
+// ---------- Tab Switching ----------
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabMenu').classList.toggle('active', tab === 'menu');
+  document.getElementById('tabCashier').classList.toggle('active', tab === 'cashier');
+  document.getElementById('tabLoyalty').classList.toggle('active', tab === 'loyalty');
+  document.getElementById('tabSettings').classList.toggle('active', tab === 'settings');
+  document.getElementById('menuView').style.display = tab === 'menu' ? 'block' : 'none';
+  document.getElementById('cashierView').style.display = tab === 'cashier' ? 'block' : 'none';
+  document.getElementById('loyaltyView').style.display = tab === 'loyalty' ? 'block' : 'none';
+  document.getElementById('settingsView').style.display = tab === 'settings' ? 'block' : 'none';
+  if (tab === 'cashier') loadCashier();
+  if (tab === 'loyalty') loadLoyalty();
+  if (tab === 'settings') loadSettings();
+}
+
+function switchSubTab(tab) {
+  currentSubTab = tab;
+  document.getElementById('subTabActive').classList.toggle('active', tab === 'active');
+  document.getElementById('subTabHistory').classList.toggle('active', tab === 'history');
+  document.getElementById('subActiveView').style.display = tab === 'active' ? 'block' : 'none';
+  document.getElementById('subHistoryView').style.display = tab === 'history' ? 'block' : 'none';
+  if (tab === 'active') loadCashier();
+  if (tab === 'history') loadHistory();
+}
+
+// ---------- MENU FUNCTIONS (Includes Request #7) ----------
+function renderCategoriesIntoSelect() {
+  document.getElementById('d-cat').innerHTML = categories.filter(c => c.id !== 'all').map(c => `<option value="${c.id}">${c.fr}</option>`).join('');
+}
+function renderDishes() {
+  document.getElementById('dishRows').innerHTML = allDishes.map(d => {
+    const isActive = d.active !== false;
+    return `
+    <tr>
+      <td>${d.id}</td>
+      <td>${d.fr}</td>
+      <td>${d.category}</td>
+      <td>${d.price.toFixed(2)} €</td>
+      <td>
+        <button class="status-btn ${isActive ? 'status-on' : 'status-off'}" onclick="toggleDishActive(${d.id})">
+          ${isActive ? 'Activé' : 'Désactivé'}
+        </button>
+      </td>
+      <td>
+        <button class="btn-icon" onclick="editDish(${d.id})">✏️</button>
+        <button class="btn-icon" onclick="deleteDish(${d.id})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+window.toggleDishActive = async (id) => {
+  const dish = allDishes.find(d => d.id === id);
+  if (!dish) return;
+  dish.active = dish.active === false ? true : false;
+  await saveMenu();
+};
+
+function toggleDishForm() {
+  const form = document.getElementById('dishForm');
+  form.classList.toggle('active');
+  if (!form.classList.contains('active')) {
+    document.getElementById('d-id').value = '';
+    ['d-fr','d-en','d-price','d-descFr','d-descEn','d-photo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('d-active').checked = true;
+  }
+}
+window.editDish = (id) => {
+  const d = allDishes.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('d-id').value = d.id;
+  document.getElementById('d-fr').value = d.fr;
+  document.getElementById('d-en').value = d.en;
+  document.getElementById('d-price').value = d.price;
+  document.getElementById('d-cat').value = d.category;
+  document.getElementById('d-descFr').value = d.descFr;
+  document.getElementById('d-descEn').value = d.descEn;
+  document.getElementById('d-photo').value = d.photo;
+  document.getElementById('d-active').checked = d.active !== false;
+  document.getElementById('dishForm').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+window.deleteDish = async (id) => {
+  if (!confirm('Supprimer ce plat ?')) return;
+  allDishes = allDishes.filter(d => d.id !== id);
+  await saveMenu();
+};
+window.saveDish = async () => {
+  const id = document.getElementById('d-id').value;
+  const data = {
+    id: id ? Number(id) : Date.now(),
+    category: document.getElementById('d-cat').value,
+    fr: document.getElementById('d-fr').value,
+    en: document.getElementById('d-en').value,
+    price: parseFloat(document.getElementById('d-price').value),
+    descFr: document.getElementById('d-descFr').value,
+    descEn: document.getElementById('d-descEn').value,
+    photo: document.getElementById('d-photo').value,
+    active: document.getElementById('d-active').checked
+  };
+  if (id) {
+    const i = allDishes.findIndex(d => d.id === Number(id));
+    allDishes[i] = data;
+  } else {
+    allDishes.push(data);
+  }
+  await saveMenu();
+  toggleDishForm();
+};
+async function saveMenu() {
+  const r = await fetch('/api/admin/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ categories, dishes: allDishes })
+  });
+  if (r.ok) renderDishes();
+  else alert('Erreur lors de l\'enregistrement');
+}
+
+// ---------- CASHIER FUNCTIONS ----------
+function parseDevice(userAgent) {
+  if (!userAgent) return 'Appareil inconnu';
+  const ua = userAgent.toLowerCase();
+  let device = 'Appareil inconnu';
+  if (ua.includes('iphone')) device = 'iPhone';
+  else if (ua.includes('ipad')) device = 'iPad';
+  else if (ua.includes('android')) device = 'Android';
+  else if (ua.includes('macintosh') || ua.includes('mac os')) device = 'Mac';
+  else if (ua.includes('windows')) device = 'Windows PC';
+  else if (ua.includes('linux')) device = 'Linux PC';
+  let browser = '';
+  if (ua.includes('chrome') && !ua.includes('edg')) browser = 'Chrome';
+  else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari';
+  else if (ua.includes('firefox')) browser = 'Firefox';
+  else if (ua.includes('edg')) browser = 'Edge';
+  return browser ? `${device} (${browser})` : device;
+}
+
+async function loadCashier() {
+  if (currentTab !== 'cashier' || currentSubTab !== 'active') return;
+  try {
+    const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    if (!r.ok) return;
+    const orders = await r.json();
+    const active = orders.filter(o => o.status !== 'done' && o.status !== 'cancelled' && o.status !== 'refunded');
+    
+    // Group by table/order
+    const grouped = {};
+    active.forEach(o => {
+      const tableKey = o.orderType === 'takeaway' ? 'Takeaway #' + o.id : (o.table || 'Unknown');
+      
+      if (!grouped[tableKey]) {
+        grouped[tableKey] = { 
+          table: tableKey, 
+          orderType: o.orderType, 
+          items: {}, 
+          total: 0, 
+          orderIds: [], 
+          paymentMethod: o.paymentMethod, 
+          tip: 0, 
+          customerPhone: o.customerPhone, 
+          partialPaid: 0,
+          statuses: [] // Track statuses for the card color
+        };
+      }
+      
+      grouped[tableKey].orderIds.push(o.id);
+      grouped[tableKey].total += o.total || 0;
+      grouped[tableKey].tip += o.tip || 0;
+      grouped[tableKey].statuses.push(o.status); // Add status
+      if (o.paidAmount) grouped[tableKey].partialPaid += o.paidAmount;
+      
+      o.items.forEach(item => {
+        const key = item.id + '_' + item.name;
+        if (!grouped[tableKey].items[key]) grouped[tableKey].items[key] = { ...item, qty: 0, orderId: o.id };
+        grouped[tableKey].items[key].qty += item.qty;
+      });
+    });
+    renderTables(Object.values(grouped));
+  } catch (e) { console.error(e); }
+}
+
+function renderTables(tables) {
+  const grid = document.getElementById('tablesGrid');
+  if (!tables.length) { grid.innerHTML = '<div class="empty-state">Aucune table active pour le moment 🍽️</div>'; return; }
+  tables.sort((a, b) => String(a.table).localeCompare(String(b.table)));
+  
+  grid.innerHTML = tables.map(t => {
+    const orderIdsStr = t.orderIds.join(',');
+    const itemsHtml = Object.values(t.items).map(item => `
+      <div class="bill-item">
+        <span><span class="qty">${item.qty}</span>${item.name}</span>
+        <button class="item-x" onclick="removeItemFromTable(${item.orderId}, ${item.id})" title="Retirer">×</button>
+      </div>`).join('');
+    
+    const payBadge = t.paymentMethod === 'cashier' 
+        ? '<span style="background:#d9a441; color:#201a0b; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold;">💵 Payer à la caisse</span>'
+        : t.paymentMethod === 'later' ? '<span style="background:#ff9800; color:white; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold;">⏳ Payer plus tard</span>'
+        : t.paymentMethod === 'applepay' ? '<span style="background:#000; color:white; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold;">🍎 Apple Pay</span>'
+        : t.paymentMethod === 'googlepay' ? '<span style="background:#4285F4; color:white; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold;">🤖 Google Pay</span>'
+        : '<span style="background:#4caf50; color:white; padding:4px 10px; border-radius:4px; font-size:12px; font-weight:bold;">✅ Payé en ligne</span>';
+
+    const phoneDisplay = t.customerPhone && t.orderType === 'takeaway' ? `<div style="font-size:13px; color:#173d2b; font-weight:bold; margin-bottom:6px;">📞 ${t.customerPhone}</div>` : '';
+    const partialInfo = t.partialPaid > 0 ? `<div style="font-size:13px; color:#6b21a8; font-weight:bold; margin-bottom:6px;">✅ Déjà payé: ${t.partialPaid.toFixed(2)} €</div>` : '';
+
+    // Determine overall status for the color border (Request #5)
+    let overallStatus = 'new';
+    if (t.statuses.includes('cooking')) overallStatus = 'cooking';
+    if (t.statuses.every(s => s === 'ready')) overallStatus = 'ready';
+
+    return `
+      <div class="table-card status-${overallStatus} ${t.orderType === 'takeaway' ? 'takeaway' : ''}">
+        <div class="table-head">
+          <div class="table-num">${t.orderType === 'takeaway' ? '🥡 ' + t.table : '🍽️ Table ' + t.table}</div>
+          <div class="table-total">${t.total.toFixed(2)} €</div>
+        </div>
+        <div style="padding:10px 16px; background:#f0f2f5; border-bottom:1px solid #eee; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+            <span>${payBadge}</span>
+            ${t.tip > 0 ? `<span style="color:#d9a441; font-weight:bold;">Pourboire: ${t.tip.toFixed(2)} €</span>` : ''}
+        </div>
+        <div class="table-body">
+          ${phoneDisplay}
+          ${partialInfo}
+          ${itemsHtml}
+        </div>
+        <div class="table-footer">
+          <div class="row">
+            <button class="btn-change" onclick="changeTable('${orderIdsStr}')">🔄 Changer Table</button>
+            <button class="btn-add" onclick="openAddModal('${orderIdsStr}', '${t.table}')">➕ Ajouter Plat</button>
+          </div>
+          <div class="row">
+            <!-- Updated Request #1: Both buttons now open the smart modal -->
+            <button class="btn-split" onclick="openSplitModal('${orderIdsStr}', '${t.table}', ${t.total})">✂️ Paiement Partagé</button>
+            <button class="btn-pay" onclick="openSplitModal('${orderIdsStr}', '${t.table}', ${t.total})">💵 Encaisser</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ---------- CHANGE TABLE ----------
+async function changeTable(orderIdsStr) {
+  const orderIds = orderIdsStr.split(',').map(Number);
+  const newTable = prompt("Entrez le nouveau numéro de table :");
+  if (!newTable) return;
+  
+  for (const orderId of orderIds) {
+    await fetch(`/api/admin/orders/${orderId}/table`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+      body: JSON.stringify({ table: newTable })
+    });
+  }
+  
+  alert(`✅ Déplacé vers Table ${newTable}`);
+  loadCashier();
+}
+
+// ---------- PAYMENT MODAL (Request #1) ----------
+function openSplitModal(orderIdsStr, tableName, total) {
+  currentSplitOrderIds = orderIdsStr.split(',').map(Number);
+  currentSplitTotal = total;
+  document.getElementById('splitTableNum').textContent = tableName;
+  document.getElementById('splitTotalAmount').textContent = total.toFixed(2) + ' €';
+  
+  // AUTO-FILL the amount with the full total
+  document.getElementById('splitAmount').value = total.toFixed(2);
+  
+  document.getElementById('splitModal').classList.add('show');
+}
+
+function closeSplitModal() {
+  document.getElementById('splitModal').classList.remove('show');
+}
+
+async function confirmSplitPayment() {
+  const method = document.getElementById('splitMethod').value;
+  const amount = parseFloat(document.getElementById('splitAmount').value);
+  
+  if (!amount || amount <= 0) {
+    alert("Veuillez entrer un montant valide.");
+    return;
+  }
+  
+  if (amount > currentSplitTotal + 0.01) {
+    alert("Le montant ne peut pas dépasser le total restant.");
+    return;
+  }
+
+  const remaining = currentSplitTotal - amount;
+  const splitDetails = [{ method, amount }];
+
+  if (confirm(`Valider le paiement de ${amount.toFixed(2)} € ?\n\nRestant: ${remaining.toFixed(2)} €`)) {
+    const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    const orders = await r.json();
+    const targetOrders = orders.filter(o => currentSplitOrderIds.includes(o.id));
+    
+    if (targetOrders.length > 0) {
+      if (remaining <= 0.01) {
+        // FULL PAYMENT - Clear from screen
+        for (const orderId of currentSplitOrderIds) {
+          await fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+            body: JSON.stringify({ status: 'done' })
+          });
+        }
+        alert("✅ Paiement complet. La table est libérée.");
+      } else {
+        // PARTIAL PAYMENT - Update total and keep on screen
+        const firstOrderId = currentSplitOrderIds[0];
+        await fetch(`/api/admin/orders/${firstOrderId}/partial-payment`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+          body: JSON.stringify({ 
+            amountPaid: amount, 
+            newTotal: remaining,
+            splitDetails: splitDetails 
+          })
+        });
+        
+        // Mark the other merged orders as done
+        for (let i = 1; i < currentSplitOrderIds.length; i++) {
+          await fetch(`/api/admin/orders/${currentSplitOrderIds[i]}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+            body: JSON.stringify({ status: 'done' })
+          });
+        }
+        alert(`✅ Paiement partiel enregistré.\nPayé: ${amount.toFixed(2)} €\nRestant: ${remaining.toFixed(2)} €`);
+      }
+      closeSplitModal();
+      loadCashier();
+    }
+  }
+}
+
+// ---------- OTHER CASHIER ACTIONS ----------
+async function markAsPaid(orderIdsStr) {
+  // Deprecated in favor of openSplitModal, but kept just in case
+  const orderIds = orderIdsStr.split(',').map(Number);
+  if (!confirm(`Marquer comme payée ?`)) return;
+  for (const orderId of orderIds) {
+    await fetch(`/api/admin/orders/${orderId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+      body: JSON.stringify({ status: 'done' })
+    });
+  }
+  loadCashier();
+}
+
+async function removeItemFromTable(orderId, dishId) {
+  if (!confirm("Retirer ce plat de la commande ?")) return;
+  const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+  const orders = await r.json();
+  const order = orders.find(o => o.id === orderId);
+  if (!order) return;
+  const newItems = order.items.filter(i => i.id !== dishId);
+  await fetch(`/api/admin/orders/${orderId}/items`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ items: newItems })
+  });
+  loadCashier();
+}
+
+function openAddModal(orderIdsStr, tableName) {
+  currentModalOrderIds = orderIdsStr.split(',').map(Number);
+  document.getElementById('modalTableNum').textContent = tableName;
+  document.getElementById('modalMenuList').innerHTML = allDishes.map(d => `<li><span>${d.fr} (${d.price.toFixed(2)} €)</span><button onclick="addItemToTable(${d.id})">+ Ajouter</button></li>`).join('');
+  document.getElementById('addItemModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('addItemModal').classList.remove('show'); }
+
+async function addItemToTable(dishId) {
+  const dish = allDishes.find(d => d.id === dishId);
+  if (!dish) return;
+  const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+  const orders = await r.json();
+  const tableOrders = orders.filter(o => currentModalOrderIds.includes(o.id)).sort((a,b) => b.id - a.id);
+  if (tableOrders.length === 0) { alert("Commande introuvable."); return; }
+  const latestOrder = tableOrders[0];
+  const newItem = { id: dish.id, name: dish.fr, price: dish.price, qty: 1 };
+  const existingIndex = latestOrder.items.findIndex(i => i.id === dish.id);
+  if (existingIndex > -1) { latestOrder.items[existingIndex].qty += 1; } else { latestOrder.items.push(newItem); }
+  await fetch(`/api/admin/orders/${latestOrder.id}/items`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ items: latestOrder.items })
+  });
+  closeModal(); loadCashier();
+}
+
+// ---------- REFUND SYSTEM ----------
+async function refundOrder(orderId, table, total) {
+  if (!confirm(`⚠️ Êtes-vous sûr de vouloir rembourser la commande #${orderId} de ${total.toFixed(2)} € ?\n\nCette action est irréversible.`)) return;
+  const r = await fetch(`/api/admin/orders/${orderId}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ status: 'refunded' })
+  });
+  if (r.ok) {
+    alert(`✅ Commande #${orderId} marquée comme REMBOURSÉE.`);
+    loadHistory();
+  } else {
+    alert("Erreur lors du remboursement.");
+  }
+}
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '<div class="empty-state">Chargement…</div>';
+  try {
+    const r = await fetch('/api/admin/orders', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    if (!r.ok) return;
+    const orders = await r.json();
+    const history = orders.filter(o => o.status === 'done' || o.status === 'refunded').sort((a, b) => b.id - a.id);
+    if (!history.length) { list.innerHTML = '<div class="empty-state">Aucune commande dans l\'historique 📜</div>'; return; }
+    
+    list.innerHTML = history.map(o => {
+      const time = new Date(o.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const device = parseDevice(o.deviceInfo);
+      const itemsText = o.items.map(i => `${i.qty}× ${i.name}`).join(', ');
+      const isRefunded = o.status === 'refunded';
+      const splitInfo = o.splitDetails ? `<div style="font-size:12px; color:#6b21a8; margin-top:4px;">✂️ Payé en ${o.splitDetails.length} fois: ${o.splitDetails.map(s => `${s.method === 'cash' ? '💵' : '💳'} ${s.amount.toFixed(2)}€`).join(' + ')}</div>` : '';
+      
+      return `
+        <div class="history-card" style="border-left-color: ${isRefunded ? '#e35d5d' : '#4caf50'}; ${isRefunded ? 'opacity: 0.7;' : ''}">
+          <div class="row1">
+            <span>${o.orderType === 'takeaway' ? '🥡 À Emporter #' + o.id : '🍽️ Table ' + (o.table || '?')}</span>
+            <span style="color: ${isRefunded ? '#e35d5d' : '#4caf50'};">${(o.total || 0).toFixed(2)} €</span>
+          </div>
+          <div class="row2">🕐 ${time} · Order #${o.id} ${isRefunded ? '<strong style="color:#e35d5d;">[REMBOURSÉ]</strong>' : ''}</div>
+          <div class="row2">🍽️ ${itemsText}</div>
+          ${splitInfo}
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+            <div class="device-tag">📱 ${device}</div>
+            ${!isRefunded ? `<button class="btn-refund" onclick="refundOrder(${o.id}, '${o.table}', ${o.total})">↩️ Rembourser</button>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) { console.error(e); }
+}
+
+// ---------- LOYALTY FUNCTIONS ----------
+async function loadLoyalty() {
+  if (currentTab !== 'loyalty') return;
+  const list = document.getElementById('loyaltyList');
+  list.innerHTML = '<div class="empty-state">Chargement…</div>';
+  try {
+    const r = await fetch('/api/admin/subscribers', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    if (!r.ok) return;
+    const subs = await r.json();
+    if (!subs.length) { list.innerHTML = '<div class="empty-state">Aucun client inscrit pour le moment 🎁</div>'; return; }
+    list.innerHTML = subs.map(s => `
+      <div class="loyalty-card">
+        <div>
+          <strong>${s.name || 'Client anonyme'}</strong> <span class="points-badge">${s.points || 0} pts</span><br>
+          <span style="color:#69736b; font-size:13px;">${s.email}</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="addPoints('${s.email}')">+ Ajouter des Points</button>
+          <button class="btn-primary" style="background:#d9a441;" onclick="sendOfferTo('${s.email}')">✉️ Envoyer Offre</button>
+          <div style="font-size:12px; color:#999;">Inscrit le ${new Date(s.date).toLocaleDateString('fr-FR')}</div>
+        </div>
+      </div>`).join('');
+  } catch (e) { console.error(e); }
+}
+
+async function addPoints(email) {
+  const points = prompt(`Combien de points souhaitez-vous ajouter pour ${email} ?`, "10");
+  if (!points || isNaN(points)) return;
+  
+  const r = await fetch(`/api/admin/subscribers/${encodeURIComponent(email)}/points`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+    body: JSON.stringify({ points: Number(points) })
+  });
+  
+  if (r.ok) {
+    alert(`✅ ${points} points ajoutés à ${email}`);
+    loadLoyalty();
+  } else {
+    alert("Erreur lors de l'ajout des points.");
+  }
+}
+
+function sendOfferPrompt() {
+  const msg = prompt("Écrivez votre offre exclusive à envoyer à TOUS les membres :");
+  if (!msg) return;
+  alert(`✅ Offre enregistrée et prête à être envoyée à tous les membres !\n\nContenu : "${msg}"`);
+}
+
+function sendOfferTo(email) {
+  const msg = prompt(`Écrivez l'offre exclusive pour ${email} :`);
+  if (!msg) return;
+  alert(`✅ Offre "${msg}" envoyée à ${email} !`);
+}
+
+// ---------- SETTINGS FUNCTIONS ----------
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/admin/settings', { headers: { 'x-admin-password': PWD, 'x-restaurant': RESTAURANT } });
+    if (!r.ok) return;
+    const data = await r.json();
+    const toggle = document.getElementById('payLaterToggle');
+    if (toggle) toggle.checked = data.payLaterEnabled !== false;
+  } catch (e) { console.error(e); }
+}
+
+async function togglePayLater() {
+  const enabled = document.getElementById('payLaterToggle').checked;
+  try {
+    const r = await fetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': PWD, 'x-restaurant': RESTAURANT },
+      body: JSON.stringify({ payLaterEnabled: enabled })
+    });
+    if (r.ok) {
+      alert(enabled ? "✅ Pay Later ENABLED" : "❌ Pay Later DISABLED");
+    } else {
+      alert("Error saving settings.");
+    }
+  } catch (e) { alert("Network error."); }
+}
+
+window.switchTab = switchTab;
+window.switchSubTab = switchSubTab;
+window.toggleDishForm = toggleDishForm;
+window.saveDish = saveDish;
+window.editDish = editDish;
+window.deleteDish = deleteDish;
+window.toggleDishActive = toggleDishActive;
+window.changeTable = changeTable;
+window.markAsPaid = markAsPaid;
+window.openSplitModal = openSplitModal;
+window.closeSplitModal = closeSplitModal;
+window.confirmSplitPayment = confirmSplitPayment;
+window.removeItemFromTable = removeItemFromTable;
+window.openAddModal = openAddModal;
+window.closeModal = closeModal;
+window.addItemToTable = addItemToTable;
+window.sendOfferPrompt = sendOfferPrompt;
+window.refundOrder = refundOrder;
+window.addPoints = addPoints;
+window.sendOfferTo = sendOfferTo;
+window.togglePayLater = togglePayLater;
+</script>
+</body>
+</html>
