@@ -1,6 +1,4 @@
 import express from 'express';
-import dns from 'node:dns';
-dns.setServers(['8.8.8.8', '8.8.4.4']);
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,7 +6,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 dotenv.config();
-console.log("Checking URI:", process.env.MONGODB_URI ? "Found" : "NOT FOUND");
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3000;
@@ -32,30 +30,6 @@ const Subscriber = mongoose.model('Subscriber', SubscriberSchema);
 // ---------- HELPERS ----------
 function getRestaurantId(req) {
   return req.headers['x-restaurant'] || 'everest';
-}
-
-// Seed DB from local JSON if empty
-async function seedDatabase() {
-  const id = 'everest';
-  const configExists = await Config.findOne({ restaurantId: id });
-  if (!configExists) {
-    const configPath = path.join(__dirname, 'data', id, 'config.json');
-    if (fs.existsSync(configPath)) {
-      const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      await Config.create({ restaurantId: id, data: configData });
-      console.log('✅ Config seeded to MongoDB');
-    }
-  }
-
-  const menuExists = await Menu.findOne({ restaurantId: id });
-  if (!menuExists) {
-    const menuPath = path.join(__dirname, 'data', id, 'menu.json');
-    if (fs.existsSync(menuPath)) {
-      const menuData = JSON.parse(fs.readFileSync(menuPath, 'utf8'));
-      await Menu.create({ restaurantId: id, categories: menuData.categories, dishes: menuData.dishes });
-      console.log('✅ Menu seeded to MongoDB');
-    }
-  }
 }
 
 async function getConfig(id) {
@@ -91,17 +65,6 @@ app.get('/api/orders/:id', async (req, res) => {
   const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
   if (!order) return res.status(404).json({ error: 'Order not found' });
   res.json(order.data);
-});
-
-app.put('/api/orders/:id/cancel', async (req, res) => {
-  const id = getRestaurantId(req);
-  const orderId = Number(req.params.id);
-  const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
-  if (!order) return res.status(404).json({ error: 'Order not found' });
-  if (order.data.status !== 'new') return res.status(400).json({ error: 'Kitchen has started.' });
-  order.data.status = 'cancelled';
-  await order.save();
-  res.json({ ok: true, order: order.data });
 });
 
 app.post('/api/subscribe', async (req, res) => {
@@ -155,8 +118,11 @@ app.put('/api/admin/orders/:id/status', requireAdmin, async (req, res) => {
   const orderId = Number(req.params.id);
   const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  
   order.data.status = req.body.status;
+  order.markModified('data'); // <--- THIS FIXES THE BUG
   await order.save();
+  
   res.json({ ok: true, order: order.data });
 });
 
@@ -165,13 +131,16 @@ app.put('/api/admin/orders/:id/items', requireAdmin, async (req, res) => {
   const orderId = Number(req.params.id);
   const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  
   if (req.body.items.length === 0) {
     order.data.status = 'cancelled';
   } else {
     order.data.items = req.body.items;
     order.data.total = req.body.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
   }
+  order.markModified('data'); // <--- THIS FIXES THE BUG
   await order.save();
+  
   res.json({ ok: true, order: order.data });
 });
 
@@ -180,8 +149,11 @@ app.put('/api/admin/orders/:id/table', requireAdmin, async (req, res) => {
   const orderId = Number(req.params.id);
   const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  
   order.data.table = req.body.table;
+  order.markModified('data'); // <--- THIS FIXES THE BUG
   await order.save();
+  
   res.json({ ok: true, order: order.data });
 });
 
@@ -190,10 +162,13 @@ app.put('/api/admin/orders/:id/partial-payment', requireAdmin, async (req, res) 
   const orderId = Number(req.params.id);
   const order = await Order.findOne({ restaurantId: id, 'data.id': orderId });
   if (!order) return res.status(404).json({ error: 'Order not found' });
+  
   order.data.total = req.body.newTotal;
   order.data.paidAmount = (order.data.paidAmount || 0) + req.body.amountPaid;
   order.data.splitDetails = req.body.splitDetails;
+  order.markModified('data'); // <--- THIS FIXES THE BUG
   await order.save();
+  
   res.json({ ok: true, order: order.data });
 });
 
@@ -224,22 +199,18 @@ app.put('/api/admin/settings', requireAdmin, async (req, res) => {
   const configDoc = await Config.findOne({ restaurantId: id });
   if (typeof req.body.payLaterEnabled === 'boolean') {
     configDoc.data.payLaterEnabled = req.body.payLaterEnabled;
-    configDoc.markModified('data');
+    configDoc.markModified('data'); // <--- THIS FIXES THE BUG
     await configDoc.save();
   }
   res.json({ ok: true, settings: { payLaterEnabled: configDoc.data.payLaterEnabled } });
 });
+
 // ---------- SUPER ADMIN API ----------
 app.get('/api/restaurants', async (req, res) => {
   const password = req.headers['x-super-password'];
-  
-  // We use the 'everest' config to verify the super admin password
   const mainConfig = await getConfig('everest');
   if (!mainConfig) return res.status(404).json({ error: 'Main config not found' });
-  
-  if (password !== mainConfig.superAdminPassword) {
-    return res.status(401).json({ error: 'Invalid super-admin password' });
-  }
+  if (password !== mainConfig.superAdminPassword) return res.status(401).json({ error: 'Invalid super-admin password' });
   
   const allConfigs = await Config.find();
   const list = allConfigs.map(c => ({
@@ -248,38 +219,32 @@ app.get('/api/restaurants', async (req, res) => {
     subscription: c.data.subscription,
     accessOverride: c.data.accessOverride
   }));
-  
   res.json(list);
 });
 
 app.post('/api/restaurants/:id/override', async (req, res) => {
   const password = req.headers['x-super-password'];
   const mainConfig = await getConfig('everest');
-  
-  if (password !== mainConfig.superAdminPassword) {
-    return res.status(401).json({ error: 'Invalid super-admin password' });
-  }
+  if (password !== mainConfig.superAdminPassword) return res.status(401).json({ error: 'Invalid super-admin password' });
   
   const targetId = req.params.id;
   const configDoc = await Config.findOne({ restaurantId: targetId });
-  
   if (!configDoc) return res.status(404).json({ error: 'Restaurant not found' });
   
   configDoc.data.accessOverride = req.body.accessOverride;
-  configDoc.markModified('data');
+  configDoc.markModified('data'); // <--- THIS FIXES THE BUG
   await configDoc.save();
   
   res.json({ ok: true, config: { id: targetId, accessOverride: configDoc.data.accessOverride } });
 });
+
 // ---------- START ----------
 mongoose.connect(process.env.MONGODB_URI)
-  .then(async () => {
+  .then(() => {
     console.log('✅ Connected to MongoDB Atlas');
-    await seedDatabase(); // Copies your local JSON files to the cloud the first time
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server running:`);
       console.log(`   Local:    http://localhost:${PORT}`);
-      console.log(`   Network:  http://<your-ip>:${PORT}`);
     });
   })
   .catch(err => console.error('❌ MongoDB connection error:', err));
