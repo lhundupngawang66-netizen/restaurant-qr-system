@@ -229,7 +229,48 @@ app.put('/api/admin/settings', requireAdmin, async (req, res) => {
   }
   res.json({ ok: true, settings: { payLaterEnabled: configDoc.data.payLaterEnabled } });
 });
+// ---------- SUPER ADMIN API ----------
+app.get('/api/restaurants', async (req, res) => {
+  const password = req.headers['x-super-password'];
+  
+  // We use the 'everest' config to verify the super admin password
+  const mainConfig = await getConfig('everest');
+  if (!mainConfig) return res.status(404).json({ error: 'Main config not found' });
+  
+  if (password !== mainConfig.superAdminPassword) {
+    return res.status(401).json({ error: 'Invalid super-admin password' });
+  }
+  
+  const allConfigs = await Config.find();
+  const list = allConfigs.map(c => ({
+    id: c.restaurantId,
+    name: c.data.name,
+    subscription: c.data.subscription,
+    accessOverride: c.data.accessOverride
+  }));
+  
+  res.json(list);
+});
 
+app.post('/api/restaurants/:id/override', async (req, res) => {
+  const password = req.headers['x-super-password'];
+  const mainConfig = await getConfig('everest');
+  
+  if (password !== mainConfig.superAdminPassword) {
+    return res.status(401).json({ error: 'Invalid super-admin password' });
+  }
+  
+  const targetId = req.params.id;
+  const configDoc = await Config.findOne({ restaurantId: targetId });
+  
+  if (!configDoc) return res.status(404).json({ error: 'Restaurant not found' });
+  
+  configDoc.data.accessOverride = req.body.accessOverride;
+  configDoc.markModified('data');
+  await configDoc.save();
+  
+  res.json({ ok: true, config: { id: targetId, accessOverride: configDoc.data.accessOverride } });
+});
 // ---------- START ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
